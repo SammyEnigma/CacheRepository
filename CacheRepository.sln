@@ -5,7 +5,7 @@ VisualStudioVersion = 15.0.28307.329
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CacheRepository", "CacheRepository\CacheRepository.csproj", "{0E96387D-35C8-4237-859F-040B9C9296D3}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CacheRepository.Test", "..\CacheRepository.Test\CacheRepository.Test.csproj", "{B1A465B3-7D43-4602-93BD-1CD15162994B}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CacheRepository.Test", "CacheRepository.Test\CacheRepository.Test.csproj", "{ACDB0121-763E-4253-97C9-B4EE09916D59}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -17,10 +17,10 @@ Global
 		{0E96387D-35C8-4237-859F-040B9C9296D3}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0E96387D-35C8-4237-859F-040B9C9296D3}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{0E96387D-35C8-4237-859F-040B9C9296D3}.Release|Any CPU.Build.0 = Release|Any CPU
-		{B1A465B3-7D43-4602-93BD-1CD15162994B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{B1A465B3-7D43-4602-93BD-1CD15162994B}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{B1A465B3-7D43-4602-93BD-1CD15162994B}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{B1A465B3-7D43-4602-93BD-1CD15162994B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{ACDB0121-763E-4253-97C9-B4EE09916D59}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{ACDB0121-763E-4253-97C9-B4EE09916D59}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{ACDB0121-763E-4253-97C9-B4EE09916D59}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{ACDB0121-763E-4253-97C9-B4EE09916D59}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
