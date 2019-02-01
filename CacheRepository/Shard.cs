@@ -240,11 +240,6 @@ namespace CacheRepository
             return ret;
         }
 
-        private void TransferToShard(int src_index, int des_index)
-        {
-
-        }
-
         private TValue CloneJson(TValue source)
         {
             // Don't serialize a null object, simply return the default for that object
