@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace CacheRepository.Test
+namespace CacheRepository.Tests
 {
     public class User
     {

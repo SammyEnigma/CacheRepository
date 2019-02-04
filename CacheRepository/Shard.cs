@@ -115,7 +115,10 @@ namespace CacheRepository
                     ret = _cache[key];
                     if (!typeof(TValue).IsValueType)
                     {
-                        ret = CloneJson(ret);
+                        if (deepClone)
+                        {
+                            ret = CloneJson(_cache[key]);
+                        }
                     }
                 }
                 else
@@ -127,7 +130,10 @@ namespace CacheRepository
                         _cache[key] = ret;
                         if (!typeof(TValue).IsValueType)
                         {
-                            ret = CloneJson(ret);
+                            if (deepClone)
+                            {
+                                ret = CloneJson(ret);
+                            }
                         }
                     }
                     finally

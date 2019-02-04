@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace CacheRepository.Test
+namespace CacheRepository.Tests
 {
     /// <summary>
     /// 按user对象的name来作key，并使用level作为分片的键

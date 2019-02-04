@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace CacheRepository.Test
+namespace CacheRepository.Tests
 {
     /// <summary>
     /// 按user对象的id同时来做为缓存的key，以及分片的键
