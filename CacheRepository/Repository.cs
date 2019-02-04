@@ -18,15 +18,19 @@ namespace CacheRepository
             public string ShardTag;
         }
 
-        private List<Shard<TKey, TValue, TShardKey>> _shardings;
+        private Dictionary<int, Shard<TKey, TValue, TShardKey>> _shardings;
         private static ThreadLocal<TLS_UnitOfWork> _tls = new ThreadLocal<TLS_UnitOfWork>();
         public readonly Func<TShardKey, (int index, string tag)> Sharding;
 
         public CacheRepository()
         {
-            _shardings = new List<Shard<TKey, TValue, TShardKey>>();
+            _shardings = new Dictionary<int, Shard<TKey, TValue, TShardKey>>();
             Sharding = GetShardingRule();
         }
+
+        #region ForTestOnly
+        public Dictionary<int, Shard<TKey, TValue, TShardKey>> Shards { get => this._shardings; }
+        #endregion
 
         protected abstract TKey GetKey(TValue value);
 
@@ -41,7 +45,7 @@ namespace CacheRepository
                 var key = GetKey(item);
                 var shard_key = GetShardKey(item);
                 var (index, tag) = Sharding(shard_key);
-                if (_shardings[index] == null)
+                if (!_shardings.ContainsKey(index))
                 {
                     _shardings[index] = new Shard<TKey, TValue, TShardKey>(index, tag, this);
                 }

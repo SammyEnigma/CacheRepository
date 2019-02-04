@@ -31,7 +31,7 @@ namespace CacheRepository.Test
                 new User { Id = 2, Age = 12, Name = "UserB", Level = 1 },
                 new User { Id = 3, Age = 12, Name = "UserC", Level = 1 },
                 new User { Id = 4, Age = 15, Name = "UserD", Level = 2 },
-                new User { Id = 5, Age = 16, Name = "UserE", Level = 2 },
+                new User { Id = 5, Age = 16, Name = "UserE", Level = 2 }
             };
         }
     }
