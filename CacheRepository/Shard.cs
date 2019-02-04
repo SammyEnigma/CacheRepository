@@ -127,6 +127,13 @@ namespace CacheRepository
                     try
                     {
                         ret = factory();
+                        // 验证分片号一致
+                        var _shardkey = _repository.GetShardKey(ret);
+                        var (index, tag) = _repository.GetShardingRule()(_shardkey);
+                        if (index != this._index)
+                        {
+                            throw new ArgumentException("创建的缓存值所在分片号与");
+                        }
                         _cache[key] = ret;
                         if (!typeof(TValue).IsValueType)
                         {
