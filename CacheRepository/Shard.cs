@@ -127,12 +127,19 @@ namespace CacheRepository
                     try
                     {
                         ret = factory();
+                        if (!typeof(TValue).IsValueType)
+                        {
+                            if (ret == null)
+                            {
+                                throw new ArgumentException("缓存值不能为null");
+                            }
+                        }
                         // 验证分片号一致
                         var _shardkey = _repository.GetShardKey(ret);
                         var (index, tag) = _repository.GetShardingRule()(_shardkey);
                         if (index != this._index)
                         {
-                            throw new ArgumentException("创建的缓存值所在分片号与");
+                            throw new ArgumentException("创建的缓存对象分片异常");
                         }
                         _cache[key] = ret;
                         if (!typeof(TValue).IsValueType)

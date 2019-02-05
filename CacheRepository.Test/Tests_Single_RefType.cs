@@ -123,5 +123,80 @@ namespace CacheRepository.Tests
             var user2 = _repository.GetOrCreate(6, user1, false);
             Assert.Same(user1, user2);
         }
+
+        [Fact]
+        public void 获取或创建_factory返回null值应该抛出异常()
+        {
+            Assert.Throws<ArgumentException>(() => _repository.GetOrCreate(6, () => null, 100));
+        }
+
+        [Fact]
+        public void 尝试修改_任意分片键都应该能修改指定对象()
+        {
+            var user = new User { Id = 1, Age = 10, Name = "UserA", Level = 0 };
+            _repository.TryUpdate(user.Id, 100, p => p.Age += 1);
+            _repository.TryUpdate(user.Id, 2000, p => p.Age += 1);
+
+            Assert.True(_repository.Get(user.Id, 300).Age == 12);
+        }
+
+        [Fact]
+        public void 尝试修改_错误的键更新将会失败()
+        {
+            var user = new User { Id = 1, Age = 10, Name = "UserA", Level = 0 };
+            Assert.False(_repository.TryUpdate(6, 100, p => p.Age += 1));
+        }
+
+        [Fact]
+        public void 删除_任意分片键应该都能删除指定对象()
+        {
+            var user = new User { Id = 1, Age = 10, Name = "UserA", Level = 0 };
+            var ret = _repository.Remove(user.Id, -200);
+            Assert.True(ret);
+            Assert.Collection<User>(_repository[0].Cache.Select(p => p.Value).ToList(),
+               item => Assert.Contains("UserB", item.Name),
+               item => Assert.Contains("UserC", item.Name),
+               item => Assert.Contains("UserD", item.Name),
+               item => Assert.Contains("UserE", item.Name));
+        }
+
+        [Fact]
+        public void 删除_一个不存在的键不会抛出异常而是返回失败()
+        {
+            var ret = _repository.Remove(6, -200);
+            Assert.False(ret);
+            Assert.Collection<User>(_repository[0].Cache.Select(p => p.Value).ToList(),
+               item => Assert.Contains("UserA", item.Name),
+               item => Assert.Contains("UserB", item.Name),
+               item => Assert.Contains("UserC", item.Name),
+               item => Assert.Contains("UserD", item.Name),
+               item => Assert.Contains("UserE", item.Name));
+        }
+
+        [Fact]
+        public void 是否存在键_任意分片都能检测是否存在()
+        {
+            var user = new User { Id = 1, Age = 10, Name = "UserA", Level = 0 };
+            var ret1 = _repository.ContainsKey(user.Id, 100);
+            var ret2 = _repository.ContainsKey(user.Id, -200);
+            Assert.True(ret1);
+            Assert.True(ret2);
+        }
+
+        [Fact]
+        public void 是否存在键_正常存在的情况返回成功()
+        {
+            var user = new User { Id = 1, Age = 10, Name = "UserA", Level = 0 };
+            var ret = _repository.ContainsKey(user.Id, 100);
+            Assert.True(ret);
+        }
+
+        [Fact]
+        public void 是否存在键_不存在的情况返回失败()
+        {
+            var user = new User { Id = 1, Age = 10, Name = "UserA", Level = 0 };
+            var ret = _repository.ContainsKey(6, 100);
+            Assert.False(ret);
+        }
     }
 }
