@@ -198,5 +198,75 @@ namespace CacheRepository.Tests
             var ret = _repository.ContainsKey(6, 100);
             Assert.False(ret);
         }
+
+        [Fact]
+        public void UnitOfWork_一次begin线程TLS应该正常初始化()
+        {
+            _repository.Begin(100);
+            Assert.Equal(0, _repository.TLS_Key);
+            Assert.Null(_repository.TLS_PreResult);
+            Assert.Equal(0, _repository.TLS_ShardIndex);
+            Assert.Equal("默认分片", _repository.TLS_ShardTag);
+        }
+
+        [Fact]
+        public void UnitOfWork_两次begin抛出异常()
+        {
+            Assert.Throws<InvalidOperationException>(() => _repository.Begin(100).Begin(100));
+        }
+
+        [Fact]
+        public void UnitOfWork_直接调用AddItem抛出异常()
+        {
+            Assert.Throws<InvalidOperationException>(() => _repository.AddItem(1, null));
+        }
+
+        [Fact]
+        public void UnitOfWork_直接调用GetItem抛出异常()
+        {
+            Assert.Throws<InvalidOperationException>(() => _repository.GetItem());
+        }
+
+        [Fact]
+        public void UnitOfWork_直接调用DoWithResult抛出异常1()
+        {
+            Assert.Throws<InvalidOperationException>(() => _repository.DoWithResult(p => p.Age = 100));
+        }
+
+        [Fact]
+        public void UnitOfWork_直接调用DoWithResult抛出异常2()
+        {
+            Assert.Throws<InvalidOperationException>(() => _repository.DoWithResult(p => p));
+        }
+
+        [Fact]
+        public void UnitOfWork_直接调用UpdateItem抛出异常1()
+        {
+            Assert.Throws<InvalidOperationException>(() => _repository.UpdateItem(p => p.Age = 100));
+        }
+
+        [Fact]
+        public void UnitOfWork_直接调用UpdateItem抛出异常2()
+        {
+            Assert.Throws<InvalidOperationException>(() => _repository.UpdateItem(p => p));
+        }
+
+        [Fact]
+        public void UnitOfWork_直接调用RemoveItem抛出异常()
+        {
+            Assert.Throws<InvalidOperationException>(() => _repository.RemoveItem());
+        }
+
+        [Fact]
+        public void UnitOfWork_直接调用Go抛出异常()
+        {
+            Assert.Throws<InvalidOperationException>(() => _repository.Go());
+        }
+
+        [Fact]
+        public void UnitOfWork_()
+        {
+            // to be continue
+        }
     }
 }

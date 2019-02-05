@@ -10,7 +10,7 @@ namespace CacheRepository.Tests
     {
         public override Func<int, (int index, string tag)> GetShardingRule()
         {
-            return p => (0, "默认分区");
+            return p => (0, "默认分片");
         }
 
         public override int GetShardKey(User value)

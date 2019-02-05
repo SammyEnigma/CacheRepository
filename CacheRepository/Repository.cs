@@ -8,9 +8,9 @@ namespace CacheRepository
     {
     }
 
-    public abstract class CacheRepository<TKey, TValue, TShardKey> : 
-        CacheRepository, 
-        IShardable<TKey, TValue, TShardKey>, 
+    public abstract class CacheRepository<TKey, TValue, TShardKey> :
+        CacheRepository,
+        IShardable<TKey, TValue, TShardKey>,
         IUnitOfWork<TKey, TValue, TShardKey>
     {
         private class TLS_UnitOfWork
@@ -22,7 +22,7 @@ namespace CacheRepository
         }
 
         private Dictionary<int, Shard<TKey, TValue, TShardKey>> _shardings;
-        private static ThreadLocal<TLS_UnitOfWork> _tls = new ThreadLocal<TLS_UnitOfWork>();
+        private ThreadLocal<TLS_UnitOfWork> _tls = new ThreadLocal<TLS_UnitOfWork>();
         public readonly Func<TShardKey, (int index, string tag)> Sharding;
 
         public CacheRepository()
@@ -33,6 +33,10 @@ namespace CacheRepository
 
         #region ForTestOnly
         public Dictionary<int, Shard<TKey, TValue, TShardKey>> Shards { get => this._shardings; }
+        public TKey TLS_Key { get => this._tls.Value.Key; }
+        public TValue TLS_PreResult { get => this._tls.Value.PreResult; }
+        public int TLS_ShardIndex { get => this._tls.Value.ShardIndex; }
+        public string TLS_ShardTag { get => this._tls.Value.ShardTag; }
         #endregion
 
         protected abstract TKey GetKey(TValue value);
@@ -123,11 +127,11 @@ namespace CacheRepository
         }
 
         #region unitofwork
-        public IUnitOfWork<TKey, TValue, TShardKey> Begin(TKey key, TShardKey shard/*在哪一个分区上执行此'事务'*/)
+        public IUnitOfWork<TKey, TValue, TShardKey> Begin(TShardKey shard/*在哪一个分区上执行此'事务'*/)
         {
             if (_tls.IsValueCreated)
                 throw new InvalidOperationException("当前线程本地存储已经有值");
-            _tls.Value = new TLS_UnitOfWork { Key = key };
+            _tls.Value = new TLS_UnitOfWork();
 
             var (index, tag) = Sharding(shard);
             _tls.Value.ShardIndex = index;
@@ -136,18 +140,30 @@ namespace CacheRepository
             return this;
         }
 
-        public IUnitOfWork<TKey, TValue, TShardKey> AddItem(TValue value)
+        public IUnitOfWork<TKey, TValue, TShardKey> AddItem(TKey key, TValue value)
         {
             if (!_tls.IsValueCreated)
                 throw new InvalidOperationException("当前线程本地存储没有赋值");
 
+            var flag = false;
             var context = _tls.Value;
-            var _key = GetShardKey(value);
-            var (_index, _tag) = Sharding(_key);
-            if (_index != context.ShardIndex)
-                throw new ArgumentException("要创建的值不在当前分区上");
+            try
+            {
+                var _key = GetShardKey(value);
+                var (_index, _tag) = Sharding(_key);
+                if (_index != context.ShardIndex)
+                    throw new ArgumentException("要创建的值不在当前分区上");
 
-            _shardings[context.ShardIndex].Cache.Add(context.Key, value);
+                _shardings[context.ShardIndex].Cache.Add(context.Key, value);
+            }
+            catch
+            {
+                flag = true;
+            }
+            if (flag)
+            {
+                _shardings[context.ShardIndex].Lock.ExitWriteLock();
+            }
             return this;
         }
 
@@ -156,8 +172,20 @@ namespace CacheRepository
             if (!_tls.IsValueCreated)
                 throw new InvalidOperationException("当前线程本地存储没有赋值");
 
+            var flag = false;
             var context = _tls.Value;
-            context.PreResult = _shardings[context.ShardIndex].Cache[context.Key];
+            try
+            {
+                context.PreResult = _shardings[context.ShardIndex].Cache[context.Key];
+            }
+            catch
+            {
+                flag = true;
+            }
+            if (flag)
+            {
+                _shardings[context.ShardIndex].Lock.ExitWriteLock();
+            }
             return this;
         }
 
@@ -166,19 +194,31 @@ namespace CacheRepository
             if (!_tls.IsValueCreated)
                 throw new InvalidOperationException("当前线程本地存储没有赋值");
 
+            var flag = false;
             var context = _tls.Value;
-            var pre_result = context.PreResult;
-            action(pre_result);
-
-            // 判定是否需要挪动分区
-            var _shard = GetShardKey(pre_result);
-            var (_new_index, _new_tag) = Sharding(_shard);
-            if (_new_index != context.ShardIndex)
+            try
             {
-                // 从当前分区删除
-                _shardings[context.ShardIndex].Remove(context.Key);
-                // 加入到新分区
-                _shardings[_new_index].Add(context.Key, pre_result);
+                var pre_result = context.PreResult;
+                action(pre_result);
+
+                // 判定是否需要挪动分区
+                var _shard = GetShardKey(pre_result);
+                var (_new_index, _new_tag) = Sharding(_shard);
+                if (_new_index != context.ShardIndex)
+                {
+                    // 从当前分区删除
+                    _shardings[context.ShardIndex].Remove(context.Key);
+                    // 加入到新分区
+                    _shardings[_new_index].Add(context.Key, pre_result);
+                }
+            }
+            catch
+            {
+                flag = true;
+            }
+            if (flag)
+            {
+                _shardings[context.ShardIndex].Lock.ExitWriteLock();
             }
 
             return this;
@@ -189,24 +229,36 @@ namespace CacheRepository
             if (!_tls.IsValueCreated)
                 throw new InvalidOperationException("当前线程本地存储没有赋值");
 
+            var flag = false;
             var context = _tls.Value;
-            var old_pre_result = context.PreResult;
-            var new_pre_result = func(old_pre_result);
-            context.PreResult = new_pre_result;
+            try
+            {
+                var old_pre_result = context.PreResult;
+                var new_pre_result = func(old_pre_result);
+                context.PreResult = new_pre_result;
 
-            // 判定是否需要挪动分区
-            var _shard = GetShardKey(new_pre_result);
-            var (_new_index, _new_tag) = Sharding(_shard);
-            if (_new_index != context.ShardIndex)
-            {
-                // 从当前分区删除
-                _shardings[context.ShardIndex].Remove(context.Key);
-                // 加入到新分区
-                _shardings[_new_index].Add(context.Key, new_pre_result);
+                // 判定是否需要挪动分区
+                var _shard = GetShardKey(new_pre_result);
+                var (_new_index, _new_tag) = Sharding(_shard);
+                if (_new_index != context.ShardIndex)
+                {
+                    // 从当前分区删除
+                    _shardings[context.ShardIndex].Remove(context.Key);
+                    // 加入到新分区
+                    _shardings[_new_index].Add(context.Key, new_pre_result);
+                }
+                else
+                {
+                    _shardings[context.ShardIndex].Cache[context.Key] = new_pre_result;
+                }
             }
-            else
+            catch
             {
-                _shardings[context.ShardIndex].Cache[context.Key] = new_pre_result;
+                flag = true;
+            }
+            if (flag)
+            {
+                _shardings[context.ShardIndex].Lock.ExitWriteLock();
             }
 
             return this;
@@ -217,21 +269,32 @@ namespace CacheRepository
             if (!_tls.IsValueCreated)
                 throw new InvalidOperationException("当前线程本地存储没有赋值");
 
+            var flag = false;
             var context = _tls.Value;
-            var val = _shardings[context.ShardIndex].Cache[context.Key];
-            update(val);
-
-            // 判定是否需要挪动分区
-            var _shard = GetShardKey(val);
-            var (_new_index, _new_tag) = Sharding(_shard);
-            if (_new_index != context.ShardIndex)
+            try
             {
-                // 从当前分区删除
-                _shardings[context.ShardIndex].Remove(context.Key);
-                // 加入到新分区
-                _shardings[_new_index].Add(context.Key, val);
-            }
+                var val = _shardings[context.ShardIndex].Cache[context.Key];
+                update(val);
 
+                // 判定是否需要挪动分区
+                var _shard = GetShardKey(val);
+                var (_new_index, _new_tag) = Sharding(_shard);
+                if (_new_index != context.ShardIndex)
+                {
+                    // 从当前分区删除
+                    _shardings[context.ShardIndex].Remove(context.Key);
+                    // 加入到新分区
+                    _shardings[_new_index].Add(context.Key, val);
+                }
+            }
+            catch
+            {
+                flag = true;
+            }
+            if (flag)
+            {
+                _shardings[context.ShardIndex].Lock.ExitWriteLock();
+            }
             return this;
         }
 
@@ -240,22 +303,34 @@ namespace CacheRepository
             if (!_tls.IsValueCreated)
                 throw new InvalidOperationException("当前线程本地存储没有赋值");
 
+            var flag = false;
             var context = _tls.Value;
-            var new_val = update(_shardings[context.ShardIndex].Cache[context.Key]);
+            try
+            {
+                var new_val = update(_shardings[context.ShardIndex].Cache[context.Key]);
 
-            // 判定是否需要挪动分区
-            var _shard = GetShardKey(new_val);
-            var (_new_index, _new_tag) = Sharding(_shard);
-            if (_new_index != context.ShardIndex)
-            {
-                // 从当前分区删除
-                _shardings[context.ShardIndex].Remove(context.Key);
-                // 加入到新分区
-                _shardings[_new_index].Add(context.Key, new_val);
+                // 判定是否需要挪动分区
+                var _shard = GetShardKey(new_val);
+                var (_new_index, _new_tag) = Sharding(_shard);
+                if (_new_index != context.ShardIndex)
+                {
+                    // 从当前分区删除
+                    _shardings[context.ShardIndex].Remove(context.Key);
+                    // 加入到新分区
+                    _shardings[_new_index].Add(context.Key, new_val);
+                }
+                else
+                {
+                    _shardings[context.ShardIndex].Cache[context.Key] = new_val;
+                }
             }
-            else
+            catch
             {
-                _shardings[context.ShardIndex].Cache[context.Key] = new_val;
+                flag = true;
+            }
+            if (flag)
+            {
+                _shardings[context.ShardIndex].Lock.ExitWriteLock();
             }
 
             return this;
@@ -266,8 +341,20 @@ namespace CacheRepository
             if (!_tls.IsValueCreated)
                 throw new InvalidOperationException("当前线程本地存储没有赋值");
 
+            var flag = false;
             var context = _tls.Value;
-            _shardings[context.ShardIndex].Cache.Remove(context.Key);
+            try
+            {
+                _shardings[context.ShardIndex].Cache.Remove(context.Key);
+            }
+            catch
+            {
+                flag = true;
+            }
+            if (flag)
+            {
+                _shardings[context.ShardIndex].Lock.ExitWriteLock();
+            }
             return this;
         }
 

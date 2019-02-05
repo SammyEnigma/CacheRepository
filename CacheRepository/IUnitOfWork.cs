@@ -4,8 +4,8 @@ namespace CacheRepository
 {
     public interface IUnitOfWork<TKey, TValue, TShardKey>
     {
-        IUnitOfWork<TKey, TValue, TShardKey> Begin(TKey key, TShardKey shard);
-        IUnitOfWork<TKey, TValue, TShardKey> AddItem(TValue value);
+        IUnitOfWork<TKey, TValue, TShardKey> Begin(TShardKey shard);
+        IUnitOfWork<TKey, TValue, TShardKey> AddItem(TKey key, TValue value);
         IUnitOfWork<TKey, TValue, TShardKey> GetItem();
         IUnitOfWork<TKey, TValue, TShardKey> DoWithResult(Action<TValue> action);
         IUnitOfWork<TKey, TValue, TShardKey> DoWithResult(Func<TValue, TValue> func);
