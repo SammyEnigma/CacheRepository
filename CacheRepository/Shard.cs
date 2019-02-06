@@ -102,7 +102,7 @@ namespace CacheRepository
                     ret = _cache[key];
                     if (deepClone)
                     {
-                        ret = CloneJson(_cache[key]);
+                        ret = CloneJson(ret);
                     }
                 }
                 else

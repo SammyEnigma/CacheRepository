@@ -5,11 +5,11 @@ using Xunit;
 
 namespace CacheRepository.Tests
 {
-    public class Tests_Single_RefType
+    public class Tests_Single
     {
         private readonly SingleShardRepository _repository;
 
-        public Tests_Single_RefType()
+        public Tests_Single()
         {
             _repository = new SingleShardRepository();
             _repository.Init();
@@ -242,13 +242,13 @@ namespace CacheRepository.Tests
         [Fact]
         public void UnitOfWork_直接调用UpdateItem抛出异常1()
         {
-            Assert.Throws<InvalidOperationException>(() => _repository.UpdateItem(p => p.Age = 100));
+            Assert.Throws<InvalidOperationException>(() => _repository.UpdateItem(1, p => p.Age = 100));
         }
 
         [Fact]
         public void UnitOfWork_直接调用UpdateItem抛出异常2()
         {
-            Assert.Throws<InvalidOperationException>(() => _repository.UpdateItem(p => p));
+            Assert.Throws<InvalidOperationException>(() => _repository.UpdateItem(1, p => p));
         }
 
         [Fact]

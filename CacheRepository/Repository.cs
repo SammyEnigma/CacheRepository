@@ -158,6 +158,7 @@ namespace CacheRepository
             }
             catch
             {
+                _tls.Value = null;
                 _shardings[context.ShardIndex].Lock.ExitWriteLock();
                 throw;
             }
@@ -176,6 +177,7 @@ namespace CacheRepository
             }
             catch
             {
+                _tls.Value = null;
                 _shardings[context.ShardIndex].Lock.ExitWriteLock();
                 throw;
             }
@@ -206,6 +208,7 @@ namespace CacheRepository
             }
             catch
             {
+                _tls.Value = null;
                 _shardings[context.ShardIndex].Lock.ExitWriteLock();
                 throw;
             }
@@ -241,13 +244,14 @@ namespace CacheRepository
             }
             catch
             {
+                _tls.Value = null;
                 _shardings[context.ShardIndex].Lock.ExitWriteLock();
                 throw;
             }
             return this;
         }
 
-        public IUnitOfWork<TKey, TValue, TShardKey> UpdateItem(Action<TValue> update)
+        public IUnitOfWork<TKey, TValue, TShardKey> UpdateItem(TKey key, Action<TValue> update)
         {
             if (!_tls.IsValueCreated)
                 throw new InvalidOperationException("当前线程本地存储没有赋值");
@@ -255,7 +259,7 @@ namespace CacheRepository
             var context = _tls.Value;
             try
             {
-                var val = _shardings[context.ShardIndex].Cache[context.Key];
+                var val = _shardings[context.ShardIndex].Cache[key];
                 update(val);
 
                 // 判定是否需要挪动分区
@@ -264,20 +268,21 @@ namespace CacheRepository
                 if (_new_index != context.ShardIndex)
                 {
                     // 从当前分区删除
-                    _shardings[context.ShardIndex].Remove(context.Key);
+                    _shardings[context.ShardIndex].Remove(key);
                     // 加入到新分区
-                    _shardings[_new_index].Add(context.Key, val);
+                    _shardings[_new_index].Add(key, val);
                 }
             }
             catch
             {
+                _tls.Value = null;
                 _shardings[context.ShardIndex].Lock.ExitWriteLock();
                 throw;
             }
             return this;
         }
 
-        public IUnitOfWork<TKey, TValue, TShardKey> UpdateItem(Func<TValue, TValue> update)
+        public IUnitOfWork<TKey, TValue, TShardKey> UpdateItem(TKey key, Func<TValue, TValue> update)
         {
             if (!_tls.IsValueCreated)
                 throw new InvalidOperationException("当前线程本地存储没有赋值");
@@ -285,7 +290,7 @@ namespace CacheRepository
             var context = _tls.Value;
             try
             {
-                var new_val = update(_shardings[context.ShardIndex].Cache[context.Key]);
+                var new_val = update(_shardings[context.ShardIndex].Cache[key]);
 
                 // 判定是否需要挪动分区
                 var _shard = GetShardKey(new_val);
@@ -293,17 +298,18 @@ namespace CacheRepository
                 if (_new_index != context.ShardIndex)
                 {
                     // 从当前分区删除
-                    _shardings[context.ShardIndex].Remove(context.Key);
+                    _shardings[context.ShardIndex].Remove(key);
                     // 加入到新分区
-                    _shardings[_new_index].Add(context.Key, new_val);
+                    _shardings[_new_index].Add(key, new_val);
                 }
                 else
                 {
-                    _shardings[context.ShardIndex].Cache[context.Key] = new_val;
+                    _shardings[context.ShardIndex].Cache[key] = new_val;
                 }
             }
             catch
             {
+                _tls.Value = null;
                 _shardings[context.ShardIndex].Lock.ExitWriteLock();
                 throw;
             }
@@ -322,6 +328,7 @@ namespace CacheRepository
             }
             catch
             {
+                _tls.Value = null;
                 _shardings[context.ShardIndex].Lock.ExitWriteLock();
                 throw;
             }

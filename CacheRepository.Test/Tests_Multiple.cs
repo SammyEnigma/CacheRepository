@@ -5,11 +5,11 @@ using Xunit;
 
 namespace CacheRepository.Tests
 {
-    public class Tests_Multiple_RefType
+    public class Tests_Multiple
     {
         private readonly MultipleShardsRepository _repository;
 
-        public Tests_Multiple_RefType()
+        public Tests_Multiple()
         {
             _repository = new MultipleShardsRepository();
             _repository.Init();

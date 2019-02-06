@@ -10,8 +10,8 @@ namespace CacheRepository
         IUnitOfWork<TKey, TValue, TShardKey> GetItem(TKey key);
         IUnitOfWork<TKey, TValue, TShardKey> DoWithResult(Action<TValue> action);
         IUnitOfWork<TKey, TValue, TShardKey> DoWithResult(Func<TValue, TValue> func);
-        IUnitOfWork<TKey, TValue, TShardKey> UpdateItem(Action<TValue> update);
-        IUnitOfWork<TKey, TValue, TShardKey> UpdateItem(Func<TValue, TValue> update);
+        IUnitOfWork<TKey, TValue, TShardKey> UpdateItem(TKey key, Action<TValue> update);
+        IUnitOfWork<TKey, TValue, TShardKey> UpdateItem(TKey key, Func<TValue, TValue> update);
         IUnitOfWork<TKey, TValue, TShardKey> RemoveItem(TKey key);
         void Go();
     }
