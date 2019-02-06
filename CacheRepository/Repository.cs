@@ -12,6 +12,7 @@ namespace CacheRepository
         CacheRepository,
         IShardable<TKey, TValue, TShardKey>,
         IUnitOfWork<TKey, TValue, TShardKey>
+        where TValue : class
     {
         private class TLS_UnitOfWork
         {
@@ -145,7 +146,6 @@ namespace CacheRepository
             if (!_tls.IsValueCreated)
                 throw new InvalidOperationException("当前线程本地存储没有赋值");
 
-            var flag = false;
             var context = _tls.Value;
             try
             {
@@ -158,33 +158,26 @@ namespace CacheRepository
             }
             catch
             {
-                flag = true;
-            }
-            if (flag)
-            {
                 _shardings[context.ShardIndex].Lock.ExitWriteLock();
+                throw;
             }
             return this;
         }
 
-        public IUnitOfWork<TKey, TValue, TShardKey> GetItem()
+        public IUnitOfWork<TKey, TValue, TShardKey> GetItem(TKey key)
         {
             if (!_tls.IsValueCreated)
                 throw new InvalidOperationException("当前线程本地存储没有赋值");
 
-            var flag = false;
             var context = _tls.Value;
             try
             {
-                context.PreResult = _shardings[context.ShardIndex].Cache[context.Key];
+                context.PreResult = _shardings[context.ShardIndex].Cache[key];
             }
             catch
             {
-                flag = true;
-            }
-            if (flag)
-            {
                 _shardings[context.ShardIndex].Lock.ExitWriteLock();
+                throw;
             }
             return this;
         }
@@ -194,7 +187,6 @@ namespace CacheRepository
             if (!_tls.IsValueCreated)
                 throw new InvalidOperationException("当前线程本地存储没有赋值");
 
-            var flag = false;
             var context = _tls.Value;
             try
             {
@@ -214,13 +206,9 @@ namespace CacheRepository
             }
             catch
             {
-                flag = true;
-            }
-            if (flag)
-            {
                 _shardings[context.ShardIndex].Lock.ExitWriteLock();
+                throw;
             }
-
             return this;
         }
 
@@ -229,7 +217,6 @@ namespace CacheRepository
             if (!_tls.IsValueCreated)
                 throw new InvalidOperationException("当前线程本地存储没有赋值");
 
-            var flag = false;
             var context = _tls.Value;
             try
             {
@@ -254,13 +241,9 @@ namespace CacheRepository
             }
             catch
             {
-                flag = true;
-            }
-            if (flag)
-            {
                 _shardings[context.ShardIndex].Lock.ExitWriteLock();
+                throw;
             }
-
             return this;
         }
 
@@ -269,7 +252,6 @@ namespace CacheRepository
             if (!_tls.IsValueCreated)
                 throw new InvalidOperationException("当前线程本地存储没有赋值");
 
-            var flag = false;
             var context = _tls.Value;
             try
             {
@@ -289,11 +271,8 @@ namespace CacheRepository
             }
             catch
             {
-                flag = true;
-            }
-            if (flag)
-            {
                 _shardings[context.ShardIndex].Lock.ExitWriteLock();
+                throw;
             }
             return this;
         }
@@ -303,7 +282,6 @@ namespace CacheRepository
             if (!_tls.IsValueCreated)
                 throw new InvalidOperationException("当前线程本地存储没有赋值");
 
-            var flag = false;
             var context = _tls.Value;
             try
             {
@@ -326,34 +304,26 @@ namespace CacheRepository
             }
             catch
             {
-                flag = true;
-            }
-            if (flag)
-            {
                 _shardings[context.ShardIndex].Lock.ExitWriteLock();
+                throw;
             }
-
             return this;
         }
 
-        public IUnitOfWork<TKey, TValue, TShardKey> RemoveItem()
+        public IUnitOfWork<TKey, TValue, TShardKey> RemoveItem(TKey key)
         {
             if (!_tls.IsValueCreated)
                 throw new InvalidOperationException("当前线程本地存储没有赋值");
 
-            var flag = false;
             var context = _tls.Value;
             try
             {
-                _shardings[context.ShardIndex].Cache.Remove(context.Key);
+                _shardings[context.ShardIndex].Cache.Remove(key);
             }
             catch
             {
-                flag = true;
-            }
-            if (flag)
-            {
                 _shardings[context.ShardIndex].Lock.ExitWriteLock();
+                throw;
             }
             return this;
         }

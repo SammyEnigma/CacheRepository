@@ -224,7 +224,7 @@ namespace CacheRepository.Tests
         [Fact]
         public void UnitOfWork_直接调用GetItem抛出异常()
         {
-            Assert.Throws<InvalidOperationException>(() => _repository.GetItem());
+            Assert.Throws<InvalidOperationException>(() => _repository.GetItem(1));
         }
 
         [Fact]
@@ -254,7 +254,7 @@ namespace CacheRepository.Tests
         [Fact]
         public void UnitOfWork_直接调用RemoveItem抛出异常()
         {
-            Assert.Throws<InvalidOperationException>(() => _repository.RemoveItem());
+            Assert.Throws<InvalidOperationException>(() => _repository.RemoveItem(1));
         }
 
         [Fact]
@@ -264,9 +264,24 @@ namespace CacheRepository.Tests
         }
 
         [Fact]
-        public void UnitOfWork_()
+        public void UnitOfWork_业务1()
         {
-            // to be continue
+            var user = new User { Id = 6, Age = 11, Name = "UserF", Level = 2 };
+            _repository.Begin(100)
+                .AddItem(6, user)
+                .GetItem(1)
+                .DoWithResult(p => p.Age += 7)
+                .RemoveItem(3)
+                .Go();
+
+            Assert.Collection<User>(_repository[0].Cache.Select(p => p.Value).ToList(),
+               item => Assert.Contains("UserA", item.Name),
+               item => Assert.Contains("UserB", item.Name),
+               item => Assert.Contains("UserD", item.Name),
+               item => Assert.Contains("UserE", item.Name),
+               item => Assert.Contains("UserF", item.Name));
+
+            Assert.True(_repository.Get(1, 100).Age == 17);
         }
     }
 }

@@ -3,6 +3,7 @@
 namespace CacheRepository
 {
     public interface IShardable<TKey, TValue, TShardKey>
+        where TValue : class
     {
         TShardKey GetShardKey(TValue value);
         Func<TShardKey, (int index, string tag)> GetShardingRule();

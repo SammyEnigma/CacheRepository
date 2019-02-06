@@ -6,6 +6,7 @@ using System.Threading;
 namespace CacheRepository
 {
     public class Shard<TKey, TValue, TShardKey>
+        where TValue : class
     {
         private int _index;
         private string _tag;
@@ -43,21 +44,14 @@ namespace CacheRepository
             _lock.EnterReadLock();
             try
             {
-                if (typeof(TValue).IsValueType)
+                TValue val = _cache[key];
+                if (deepClone)
                 {
-                    ret = _cache[key];
+                    ret = CloneJson(val);
                 }
                 else
                 {
-                    TValue val = _cache[key];
-                    if (deepClone)
-                    {
-                        ret = CloneJson(val);
-                    }
-                    else
-                    {
-                        ret = val;
-                    }
+                    ret = val;
                 }
             }
             finally
@@ -75,20 +69,13 @@ namespace CacheRepository
             {
                 if (_cache.ContainsKey(key))
                 {
-                    if (typeof(TValue).IsValueType)
+                    if (deepClone)
                     {
-                        value = _cache[key];
+                        value = CloneJson(_cache[key]);
                     }
                     else
                     {
-                        if (deepClone)
-                        {
-                            value = CloneJson(_cache[key]);
-                        }
-                        else
-                        {
-                            value = _cache[key];
-                        }
+                        value = _cache[key];
                     }
                     ret = true;
                 }
@@ -113,12 +100,9 @@ namespace CacheRepository
                 if (_cache.ContainsKey(key))
                 {
                     ret = _cache[key];
-                    if (!typeof(TValue).IsValueType)
+                    if (deepClone)
                     {
-                        if (deepClone)
-                        {
-                            ret = CloneJson(_cache[key]);
-                        }
+                        ret = CloneJson(_cache[key]);
                     }
                 }
                 else
@@ -127,13 +111,11 @@ namespace CacheRepository
                     try
                     {
                         ret = factory();
-                        if (!typeof(TValue).IsValueType)
+                        if (ret == null)
                         {
-                            if (ret == null)
-                            {
-                                throw new ArgumentException("缓存值不能为null");
-                            }
+                            throw new ArgumentException("缓存值不能为null");
                         }
+
                         // 验证分片号一致
                         var _shardkey = _repository.GetShardKey(ret);
                         var (index, tag) = _repository.GetShardingRule()(_shardkey);
@@ -142,12 +124,9 @@ namespace CacheRepository
                             throw new ArgumentException("创建的缓存对象分片异常");
                         }
                         _cache[key] = ret;
-                        if (!typeof(TValue).IsValueType)
+                        if (deepClone)
                         {
-                            if (deepClone)
-                            {
-                                ret = CloneJson(ret);
-                            }
+                            ret = CloneJson(ret);
                         }
                     }
                     finally
