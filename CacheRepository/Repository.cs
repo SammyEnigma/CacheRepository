@@ -83,12 +83,16 @@ namespace CacheRepository
         public TValue Get(TKey key, TShardKey shard, bool deepClone = true)
         {
             var (index, tag) = Sharding(shard);
+            if (!_shardings.ContainsKey(index))
+                throw new ArgumentException("计算所得的分片并不存在");
             return _shardings[index].Get(key, deepClone);
         }
 
         public bool TryGet(TKey key, out TValue value, TShardKey shard, bool deepClone = true)
         {
             var (index, tag) = Sharding(shard);
+            if (!_shardings.ContainsKey(index))
+                throw new ArgumentException("计算所得的分片并不存在");
             return _shardings[index].TryGet(key, out value, deepClone);
         }
 
@@ -100,30 +104,40 @@ namespace CacheRepository
         public TValue GetOrCreate(TKey key, Func<TValue> factory, TShardKey shard, bool deepClone = true)
         {
             var (index, tag) = Sharding(shard);
+            if (!_shardings.ContainsKey(index))
+                throw new ArgumentException("计算所得的分片并不存在");
             return _shardings[index].GetOrCreate(key, factory, deepClone);
         }
 
         public bool TryUpdate(TKey key, TShardKey shard, Action<TValue> update)
         {
             var (index, tag) = Sharding(shard);
+            if (!_shardings.ContainsKey(index))
+                throw new ArgumentException("计算所得的分片并不存在");
             return _shardings[index].TryUpdate(key, update);
         }
 
         public bool TryUpdate(TKey key, TShardKey shard, Func<TValue, TValue> update)
         {
             var (index, tag) = Sharding(shard);
+            if (!_shardings.ContainsKey(index))
+                throw new ArgumentException("计算所得的分片并不存在");
             return _shardings[index].TryUpdate(key, update);
         }
 
         public bool Remove(TKey key, TShardKey shard)
         {
             var (index, tag) = Sharding(shard);
+            if (!_shardings.ContainsKey(index))
+                throw new ArgumentException("计算所得的分片并不存在");
             return _shardings[index].Remove(key);
         }
 
         public bool ContainsKey(TKey key, TShardKey shard)
         {
             var (index, tag) = Sharding(shard);
+            if (!_shardings.ContainsKey(index))
+                throw new ArgumentException("计算所得的分片并不存在");
             return _shardings[index].ContainsKey(key);
         }
 
@@ -137,6 +151,8 @@ namespace CacheRepository
             var (index, tag) = Sharding(shard);
             _tls.Value.ShardIndex = index;
             _tls.Value.ShardTag = tag;
+            if (!_shardings.ContainsKey(index))
+                throw new ArgumentException("计算所得的分片并不存在");
             _shardings[index].Lock.EnterWriteLock();
             return this;
         }

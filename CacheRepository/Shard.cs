@@ -121,7 +121,7 @@ namespace CacheRepository
                         var (index, tag) = _repository.GetShardingRule()(_shardkey);
                         if (index != this._index)
                         {
-                            throw new ArgumentException("创建的缓存对象分片异常");
+                            throw new ArgumentException("创建的缓存对象分片与所在分片不一致");
                         }
                         _cache[key] = ret;
                         if (deepClone)

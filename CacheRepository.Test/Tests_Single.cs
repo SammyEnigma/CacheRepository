@@ -131,7 +131,7 @@ namespace CacheRepository.Tests
         }
 
         [Fact]
-        public void 尝试修改_任意分片键都应该能修改指定对象()
+        public void 尝试更新_任意分片键都应该能更新指定对象()
         {
             var user = new User { Id = 1, Age = 10, Name = "UserA", Level = 0 };
             _repository.TryUpdate(user.Id, 100, p => p.Age += 1);
@@ -141,7 +141,7 @@ namespace CacheRepository.Tests
         }
 
         [Fact]
-        public void 尝试修改_错误的键更新将会失败()
+        public void 尝试更新_错误的键更新将会失败()
         {
             var user = new User { Id = 1, Age = 10, Name = "UserA", Level = 0 };
             Assert.False(_repository.TryUpdate(6, 100, p => p.Age += 1));
