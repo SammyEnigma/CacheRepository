@@ -4,12 +4,7 @@ using System.Threading;
 
 namespace CacheRepository
 {
-    public class CacheRepository
-    {
-    }
-
     public abstract class CacheRepository<TKey, TValue, TShardKey> :
-        CacheRepository,
         IShardable<TKey, TValue, TShardKey>,
         IUnitOfWork<TKey, TValue, TShardKey>
         where TValue : class
@@ -22,12 +17,14 @@ namespace CacheRepository
             public string ShardTag;
         }
 
+        private Dictionary<TKey, long> _global_hash;
         private Dictionary<int, Shard<TKey, TValue, TShardKey>> _shardings;
         private ThreadLocal<TLS_UnitOfWork> _tls = new ThreadLocal<TLS_UnitOfWork>();
         public readonly Func<TShardKey, (int index, string tag)> Sharding;
 
         public CacheRepository()
         {
+            _global_hash = new Dictionary<TKey, long>();
             _shardings = new Dictionary<int, Shard<TKey, TValue, TShardKey>>();
             Sharding = GetShardingRule();
         }
@@ -58,6 +55,7 @@ namespace CacheRepository
                     _shardings[index] = new Shard<TKey, TValue, TShardKey>(index, tag, this);
                 }
                 _shardings[index].Cache.Add(key, item);
+                _global_hash.Add(key, item.GetHashCode());
             }
         }
 
@@ -73,11 +71,48 @@ namespace CacheRepository
 
         public abstract Func<TShardKey, (int index, string tag)> GetShardingRule();
 
-        public void Add(TKey key, TValue value)
+        public Dictionary<TKey, long> GloablHash
+        {
+            get
+            {
+                return _global_hash;
+            }
+        }
+
+        /*
+         * 说明：
+         * 思考这样一个场景：一次TryUpdate操作，用户指定的Action委托中需要根据条件来执行更新动作，
+         * 如果更新成功了则返回成功反之失败；
+         * 
+         * 注意到这里的返回值true或false是一个业务上的逻辑值，而CacheRepository中的增删改查方法其
+         * 返回值只能是表示这次操作是否成功，并不携带业务意义；
+         * 
+         * 让我们回想下sql server中是怎么处理这种情况的，对，关键点就是受影响行数！所以，我们需要为
+         * CacheRepository中的增删改查方法添加一个可以跟上层业务沟通的桥梁，受影响行数。
+         * 
+         * 分情况来讨论：
+         * Add方法
+         *      . 当前CacheRepository的实现中，仅支持单个插入，因此其返回值true或false既可以表示
+         *      本次内存操作成功与否，也可以直接用来作为业务成功与否的逻辑值
+         *      . 后续如果考虑增加批量插入的话，那么是应该要返回该操作受影响的行数的
+         * Get方法
+         *      最简单，返回值就是我们需要的值
+         * Update方法
+         *      . 现有的方法支持单个内存对象更新操作，其返回值true或false仅能表示本次内存操作的成
+         *      功与否；业务逻辑的成功与否我们需要明确返回一个受影响行数
+         *      . 后续如果考虑增加批量更新的话，同样需要明确返回一个受影响行数
+         * Remove方法
+         *      . 当前CacheRepository的实现中，仅支持单个删除，因此其返回值true或false是可以同时
+         *      表示内存操作和业务逻辑的成功与否的
+         *      . 后续如果考虑增加批量删除逻辑的话，那么是应该要返回删除操作受影响的行数的
+         * 
+         */
+        public bool Add(TKey key, TValue value)
         {
             var shard_key = GetShardKey(value);
             var (index, tag) = Sharding(shard_key);
-            _shardings[index].Add(key, value);
+            _shardings[index].Add(key, value, out _);
+            return true;
         }
 
         public TValue Get(TKey key, TShardKey shard, bool deepClone = true)
@@ -114,7 +149,9 @@ namespace CacheRepository
             var (index, tag) = Sharding(shard);
             if (!_shardings.ContainsKey(index))
                 throw new ArgumentException("计算所得的分片并不存在");
-            return _shardings[index].TryUpdate(key, update);
+            var affected = 0;
+            _shardings[index].TryUpdate(key, update, out affected);
+            return affected == 1;
         }
 
         public bool TryUpdate(TKey key, TShardKey shard, Func<TValue, TValue> update)
@@ -122,7 +159,9 @@ namespace CacheRepository
             var (index, tag) = Sharding(shard);
             if (!_shardings.ContainsKey(index))
                 throw new ArgumentException("计算所得的分片并不存在");
-            return _shardings[index].TryUpdate(key, update);
+            var affected = 0;
+            _shardings[index].TryUpdate(key, update, out affected);
+            return affected == 1;
         }
 
         public bool Remove(TKey key, TShardKey shard)
@@ -130,7 +169,9 @@ namespace CacheRepository
             var (index, tag) = Sharding(shard);
             if (!_shardings.ContainsKey(index))
                 throw new ArgumentException("计算所得的分片并不存在");
-            return _shardings[index].Remove(key);
+            var affected = 0;
+            _shardings[index].Remove(key, out affected);
+            return affected == 1;
         }
 
         public bool ContainsKey(TKey key, TShardKey shard)
@@ -217,9 +258,9 @@ namespace CacheRepository
                 if (_new_index != context.ShardIndex)
                 {
                     // 从当前分区删除
-                    _shardings[context.ShardIndex].Remove(context.Key);
+                    _shardings[context.ShardIndex].Remove(context.Key, out _);
                     // 加入到新分区
-                    _shardings[_new_index].Add(context.Key, pre_result);
+                    _shardings[_new_index].Add(context.Key, pre_result, out _);
                 }
             }
             catch
@@ -249,9 +290,9 @@ namespace CacheRepository
                 if (_new_index != context.ShardIndex)
                 {
                     // 从当前分区删除
-                    _shardings[context.ShardIndex].Remove(context.Key);
+                    _shardings[context.ShardIndex].Remove(context.Key, out _);
                     // 加入到新分区
-                    _shardings[_new_index].Add(context.Key, new_pre_result);
+                    _shardings[_new_index].Add(context.Key, new_pre_result, out _);
                 }
                 else
                 {
@@ -284,9 +325,9 @@ namespace CacheRepository
                 if (_new_index != context.ShardIndex)
                 {
                     // 从当前分区删除
-                    _shardings[context.ShardIndex].Remove(key);
+                    _shardings[context.ShardIndex].Remove(key, out _);
                     // 加入到新分区
-                    _shardings[_new_index].Add(key, val);
+                    _shardings[_new_index].Add(key, val, out _);
                 }
             }
             catch
@@ -314,9 +355,9 @@ namespace CacheRepository
                 if (_new_index != context.ShardIndex)
                 {
                     // 从当前分区删除
-                    _shardings[context.ShardIndex].Remove(key);
+                    _shardings[context.ShardIndex].Remove(key, out _);
                     // 加入到新分区
-                    _shardings[_new_index].Add(key, new_val);
+                    _shardings[_new_index].Add(key, new_val, out _);
                 }
                 else
                 {

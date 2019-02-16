@@ -25,17 +25,19 @@ namespace CacheRepository
             _cache = new Dictionary<TKey, TValue>();
         }
 
-        public void Add(TKey key, TValue value)
+        public bool Add(TKey key, TValue value, out int affected)
         {
             _lock.EnterWriteLock();
             try
             {
                 _cache.Add(key, value);
+                affected = 1;
             }
             finally
             {
                 _lock.ExitWriteLock();
             }
+            return true;
         }
 
         public TValue Get(TKey key, bool deepClone = true)
@@ -143,9 +145,10 @@ namespace CacheRepository
             return ret;
         }
 
-        public bool TryUpdate(TKey key, Action<TValue> update)
+        public bool TryUpdate(TKey key, Action<TValue> update, out int affected)
         {
             bool ret = false;
+            affected = 0;
             _lock.EnterWriteLock();
             TValue value;
             try
@@ -153,6 +156,13 @@ namespace CacheRepository
                 if (_cache.TryGetValue(key, out value))
                 {
                     update(value);
+                    var old_hash = _repository.GloablHash[key];
+                    var new_hash = value.GetHashCode();
+                    if (old_hash != new_hash)
+                    {
+                        affected = 1;
+                    }
+
                     // 判定是否需要挪动分区
                     var _shard = _repository.GetShardKey(value);
                     var (_new_index, _new_tag) = _repository.GetShardingRule()(_shard);
@@ -161,7 +171,7 @@ namespace CacheRepository
                         // 从当前分区删除
                         _cache.Remove(key);
                         // 加入到新分区
-                        _repository[_new_index].Add(key, value);
+                        _repository[_new_index].Add(key, value, out _);
                     }
 
                     ret = true;
@@ -174,9 +184,10 @@ namespace CacheRepository
             return ret;
         }
 
-        public bool TryUpdate(TKey key, Func<TValue, TValue> update)
+        public bool TryUpdate(TKey key, Func<TValue, TValue> update, out int affected)
         {
             bool ret = false;
+            affected = 0;
             _lock.EnterWriteLock();
             TValue value;
             try
@@ -184,6 +195,13 @@ namespace CacheRepository
                 if (_cache.TryGetValue(key, out value))
                 {
                     var new_val = update(value);
+                    var old_hash = _repository.GloablHash[key];
+                    var new_hash = new_val.GetHashCode();
+                    if (old_hash != new_hash)
+                    {
+                        affected = 1;
+                    }
+
                     // 判定是否需要挪动分区
                     var _shard = _repository.GetShardKey(new_val);
                     var (_new_index, _new_tag) = _repository.GetShardingRule()(_shard);
@@ -192,7 +210,7 @@ namespace CacheRepository
                         // 从当前分区删除
                         _cache.Remove(key);
                         // 加入到新分区
-                        _repository[_new_index].Add(key, new_val);
+                        _repository[_new_index].Add(key, new_val, out _);
                     }
                     else
                     {
@@ -209,13 +227,14 @@ namespace CacheRepository
             return ret;
         }
 
-        public bool Remove(TKey key)
+        public bool Remove(TKey key, out int affected)
         {
             bool ret = false;
             _lock.EnterWriteLock();
             try
             {
                 ret = _cache.Remove(key);
+                affected = ret ? 1 : 0;
             }
             finally
             {
