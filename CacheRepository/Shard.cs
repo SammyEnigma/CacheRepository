@@ -145,6 +145,26 @@ namespace CacheRepository
             return ret;
         }
 
+        /*
+         * 说明：
+         * 现有的判定value是否被更新的方式有一个问题：如果用户修改的字段以及要更新的值完全一致的话，
+         * 那么hash计算出来的值将会是一样的，如此一来affected也就为0了。上层业务也就不能知晓更新是
+         * 否成功；
+         * 
+         * 一个改进方式是，对value这个类型做手脚。核心思想是增加一个version隐藏字段，每当有更新发生
+         * 的时候version会自动+1，这样的话就可以保证即使是更改的字段更改的值完全一样version也会发生
+         * 变动，hash的结果也会不一样了；
+         * 
+         * 当中有两个小问题：
+         *      1. 该version字段的读写应该要保证线程安全，原因在于虽然我们的更新发生在单个对象上，并
+         *      且修改的当时整个shard是被锁住的，但是如果同时修改多个字段，我们也不清楚clr内部对字段
+         *      赋值的动作会不会并行发生，出于安全考虑应该要进行线程同步处理；
+         *      2. 考虑到内存的修改可能会很多，所以也许想用volatile来修饰一个long version。这其实没
+         *      关系，即使用short也无妨，原因就在于我们的修改发生在单个对象上，这里仅需要保证version
+         *      单调递增就可以了；
+         *      
+         * 具体的例子可以参考CacheRepository.Test项目中对Car类型的实现
+         */
         public bool TryUpdate(TKey key, Action<TValue> update, out int affected)
         {
             bool ret = false;
