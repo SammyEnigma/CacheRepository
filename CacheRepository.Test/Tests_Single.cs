@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Xunit;
+using CacheRepository.UnitOfWork;
 
 namespace CacheRepository.Tests
 {
@@ -218,43 +219,50 @@ namespace CacheRepository.Tests
         [Fact]
         public void UnitOfWork_直接调用AddItem抛出异常()
         {
-            Assert.Throws<InvalidOperationException>(() => _repository.AddItem(1, null));
+            var unitofwork = _repository as IUnitOfWork<int, User, int>;
+            Assert.Throws<InvalidOperationException>(() => unitofwork.AddItem(1, null));
         }
 
         [Fact]
         public void UnitOfWork_直接调用GetItem抛出异常()
         {
-            Assert.Throws<InvalidOperationException>(() => _repository.GetItem(1));
+            var unitofwork = _repository as IUnitOfWork<int, User, int>;
+            Assert.Throws<InvalidOperationException>(() => unitofwork.GetItem(1));
         }
 
         [Fact]
         public void UnitOfWork_直接调用DoWithResult抛出异常1()
         {
-            Assert.Throws<InvalidOperationException>(() => _repository.DoWithResult(p => p.Age = 100));
+            var unitofwork = _repository as IUnitOfWork<int, User, int>;
+            Assert.Throws<InvalidOperationException>(() => unitofwork.DoWithResult(p => p.Age = 100));
         }
 
         [Fact]
         public void UnitOfWork_直接调用DoWithResult抛出异常2()
         {
-            Assert.Throws<InvalidOperationException>(() => _repository.DoWithResult(p => p));
+            var unitofwork = _repository as IUnitOfWork<int, User, int>;
+            Assert.Throws<InvalidOperationException>(() => unitofwork.DoWithResult(p => p));
         }
 
         [Fact]
         public void UnitOfWork_直接调用UpdateItem抛出异常1()
         {
-            Assert.Throws<InvalidOperationException>(() => _repository.UpdateItem(1, p => p.Age = 100));
+            var unitofwork = _repository as IUnitOfWork<int, User, int>;
+            Assert.Throws<InvalidOperationException>(() => unitofwork.UpdateItem(1, p => p.Age = 100));
         }
 
         [Fact]
         public void UnitOfWork_直接调用UpdateItem抛出异常2()
         {
-            Assert.Throws<InvalidOperationException>(() => _repository.UpdateItem(1, p => p));
+            var unitofwork = _repository as IUnitOfWork<int, User, int>;
+            Assert.Throws<InvalidOperationException>(() => unitofwork.UpdateItem(1, p => p));
         }
 
         [Fact]
         public void UnitOfWork_直接调用RemoveItem抛出异常()
         {
-            Assert.Throws<InvalidOperationException>(() => _repository.RemoveItem(1));
+            var unitofwork = _repository as IUnitOfWork<int, User, int>;
+            Assert.Throws<InvalidOperationException>(() => unitofwork.RemoveItem(1));
         }
 
         [Fact]

@@ -1,4 +1,5 @@
-﻿using System;
+﻿using CacheRepository.UnitOfWork;
+using System;
 using System.Collections.Generic;
 using System.Threading;
 
@@ -193,7 +194,7 @@ namespace CacheRepository
             return this;
         }
 
-        public IUnitOfWork<TKey, TValue, TShardKey> AddItem(TKey key, TValue value)
+        IUnitOfWork<TKey, TValue, TShardKey> IUnitOfWork<TKey, TValue, TShardKey>.AddItem(TKey key, TValue value)
         {
             if (!_tls.IsValueCreated)
                 throw new InvalidOperationException("当前线程本地存储没有赋值");
@@ -217,7 +218,7 @@ namespace CacheRepository
             return this;
         }
 
-        public IUnitOfWork<TKey, TValue, TShardKey> GetItem(TKey key)
+        IUnitOfWork<TKey, TValue, TShardKey> IUnitOfWork<TKey, TValue, TShardKey>.GetItem(TKey key)
         {
             if (!_tls.IsValueCreated)
                 throw new InvalidOperationException("当前线程本地存储没有赋值");
@@ -236,7 +237,7 @@ namespace CacheRepository
             return this;
         }
 
-        public IUnitOfWork<TKey, TValue, TShardKey> DoWithResult(Action<TValue> action)
+        IUnitOfWork<TKey, TValue, TShardKey> IUnitOfWork<TKey, TValue, TShardKey>.DoWithResult(Action<TValue> action)
         {
             if (!_tls.IsValueCreated)
                 throw new InvalidOperationException("当前线程本地存储没有赋值");
@@ -267,7 +268,7 @@ namespace CacheRepository
             return this;
         }
 
-        public IUnitOfWork<TKey, TValue, TShardKey> DoWithResult(Func<TValue, TValue> func)
+        IUnitOfWork<TKey, TValue, TShardKey> IUnitOfWork<TKey, TValue, TShardKey>.DoWithResult(Func<TValue, TValue> func)
         {
             if (!_tls.IsValueCreated)
                 throw new InvalidOperationException("当前线程本地存储没有赋值");
@@ -303,7 +304,7 @@ namespace CacheRepository
             return this;
         }
 
-        public IUnitOfWork<TKey, TValue, TShardKey> UpdateItem(TKey key, Action<TValue> update)
+        IUnitOfWork<TKey, TValue, TShardKey> IUnitOfWork<TKey, TValue, TShardKey>.UpdateItem(TKey key, Action<TValue> update)
         {
             if (!_tls.IsValueCreated)
                 throw new InvalidOperationException("当前线程本地存储没有赋值");
@@ -334,7 +335,7 @@ namespace CacheRepository
             return this;
         }
 
-        public IUnitOfWork<TKey, TValue, TShardKey> UpdateItem(TKey key, Func<TValue, TValue> update)
+        IUnitOfWork<TKey, TValue, TShardKey> IUnitOfWork<TKey, TValue, TShardKey>.UpdateItem(TKey key, Func<TValue, TValue> update)
         {
             if (!_tls.IsValueCreated)
                 throw new InvalidOperationException("当前线程本地存储没有赋值");
@@ -368,7 +369,7 @@ namespace CacheRepository
             return this;
         }
 
-        public IUnitOfWork<TKey, TValue, TShardKey> RemoveItem(TKey key)
+        IUnitOfWork<TKey, TValue, TShardKey> IUnitOfWork<TKey, TValue, TShardKey>.RemoveItem(TKey key)
         {
             if (!_tls.IsValueCreated)
                 throw new InvalidOperationException("当前线程本地存储没有赋值");

@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace CacheRepository
+namespace CacheRepository.UnitOfWork
 {
     public interface IUnitOfWork<TKey, TValue, TShardKey>
         where TValue : class
