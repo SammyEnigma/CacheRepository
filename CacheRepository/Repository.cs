@@ -107,7 +107,7 @@ namespace CacheRepository
          *      . 后续如果考虑增加批量删除逻辑的话，那么是应该要返回删除操作受影响的行数的
          * 
          */
-        public bool Add(TKey key, TValue value)
+        protected bool Add(TKey key, TValue value)
         {
             var shard_key = GetShardKey(value);
             var (index, tag) = Sharding(shard_key);
@@ -115,7 +115,7 @@ namespace CacheRepository
             return true;
         }
 
-        public TValue Get(TKey key, TShardKey shard, bool deepClone = true)
+        protected TValue Get(TKey key, TShardKey shard, bool deepClone = true)
         {
             var (index, tag) = Sharding(shard);
             if (!_shardings.ContainsKey(index))
@@ -123,7 +123,7 @@ namespace CacheRepository
             return _shardings[index].Get(key, deepClone);
         }
 
-        public bool TryGet(TKey key, out TValue value, TShardKey shard, bool deepClone = true)
+        protected bool TryGet(TKey key, out TValue value, TShardKey shard, bool deepClone = true)
         {
             var (index, tag) = Sharding(shard);
             if (!_shardings.ContainsKey(index))
@@ -131,12 +131,12 @@ namespace CacheRepository
             return _shardings[index].TryGet(key, out value, deepClone);
         }
 
-        public TValue GetOrCreate(TKey key, TValue value, bool deepClone = true)
+        protected TValue GetOrCreate(TKey key, TValue value, bool deepClone = true)
         {
             return GetOrCreate(key, () => value, GetShardKey(value), deepClone);
         }
 
-        public TValue GetOrCreate(TKey key, Func<TValue> factory, TShardKey shard, bool deepClone = true)
+        protected TValue GetOrCreate(TKey key, Func<TValue> factory, TShardKey shard, bool deepClone = true)
         {
             var (index, tag) = Sharding(shard);
             if (!_shardings.ContainsKey(index))
@@ -144,7 +144,7 @@ namespace CacheRepository
             return _shardings[index].GetOrCreate(key, factory, deepClone);
         }
 
-        public bool TryUpdate(TKey key, TShardKey shard, Action<TValue> update)
+        protected bool TryUpdate(TKey key, TShardKey shard, Action<TValue> update)
         {
             var (index, tag) = Sharding(shard);
             if (!_shardings.ContainsKey(index))
@@ -154,7 +154,7 @@ namespace CacheRepository
             return affected == 1;
         }
 
-        public bool TryUpdate(TKey key, TShardKey shard, Func<TValue, TValue> update)
+        protected bool TryUpdate(TKey key, TShardKey shard, Func<TValue, TValue> update)
         {
             var (index, tag) = Sharding(shard);
             if (!_shardings.ContainsKey(index))
@@ -164,7 +164,7 @@ namespace CacheRepository
             return affected == 1;
         }
 
-        public bool Remove(TKey key, TShardKey shard)
+        protected bool Remove(TKey key, TShardKey shard)
         {
             var (index, tag) = Sharding(shard);
             if (!_shardings.ContainsKey(index))
@@ -174,7 +174,7 @@ namespace CacheRepository
             return affected == 1;
         }
 
-        public bool ContainsKey(TKey key, TShardKey shard)
+        protected bool ContainsKey(TKey key, TShardKey shard)
         {
             var (index, tag) = Sharding(shard);
             if (!_shardings.ContainsKey(index))
