@@ -126,6 +126,7 @@ namespace CacheRepository
                             throw new ArgumentException("创建的缓存对象分片与所在分片不一致");
                         }
                         _cache[key] = ret;
+                        _repository.GloablHash.Add(key, ret.GetHashCode());
                         if (deepClone)
                         {
                             ret = CloneJson(ret);

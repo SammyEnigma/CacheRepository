@@ -108,6 +108,7 @@ namespace CacheRepository
             var shard_key = GetShardKey(value);
             var (index, tag) = Sharding(shard_key);
             _shards[index].Add(key, value, out _);
+            _global_hash.Add(key, value.GetHashCode());
             return true;
         }
 
@@ -167,6 +168,7 @@ namespace CacheRepository
                 throw new ArgumentException("计算所得的分片并不存在");
             var affected = 0;
             _shards[index].Remove(key, out affected);
+            _global_hash.Remove(key);
             return affected == 1;
         }
 
