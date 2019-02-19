@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 
 namespace CacheRepository
 {
@@ -8,5 +9,6 @@ namespace CacheRepository
         TShardKey GetShardKey(TValue value);
         Func<TShardKey, (int index, string tag)> GetShardingRule();
         Shard<TKey, TValue, TShardKey> this[int index] { get; }
+        Dictionary<int, Shard<TKey, TValue, TShardKey>> Shards { get; }
     }
 }

@@ -13,8 +13,8 @@ namespace CacheRepository
         private ReaderWriterLockSlim _lock;
         private Dictionary<TKey, TValue> _cache;
         private IShardable<TKey, TValue, TShardKey> _repository;
-        public ReaderWriterLockSlim Lock => this._lock;
-        public Dictionary<TKey, TValue> Cache => this._cache;
+        public ReaderWriterLockSlim Lock { get => this._lock; }
+        public Dictionary<TKey, TValue> Cache { get => this._cache; }
 
         public Shard(int index, string tag, IShardable<TKey, TValue, TShardKey> repository)
         {

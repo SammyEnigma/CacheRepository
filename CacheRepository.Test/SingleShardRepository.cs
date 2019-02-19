@@ -34,5 +34,50 @@ namespace CacheRepository.Tests
                 new User { Id = 5, Age = 16, Name = "UserE", Level = 2 }
             };
         }
+
+        public new bool Add(int key, User value)
+        {
+            return base.Add(key, value);
+        }
+
+        public new User Get(int key, int shard, bool deepClone = true)
+        {
+            return base.Get(key, shard, deepClone);
+        }
+
+        public new bool TryGet(int key, out User value, int shard, bool deepClone = true)
+        {
+            return base.TryGet(key, out value, shard, deepClone);
+        }
+
+        public new User GetOrCreate(int key, User value, bool deepClone = true)
+        {
+            return base.GetOrCreate(key, value, deepClone);
+        }
+
+        public new User GetOrCreate(int key, Func<User> factory, int shard, bool deepClone = true)
+        {
+            return base.GetOrCreate(key, factory, shard, deepClone);
+        }
+
+        public new bool TryUpdate(int key, int shard, Action<User> update)
+        {
+            return base.TryUpdate(key, shard, update);
+        }
+
+        public new bool TryUpdate(int key, int shard, Func<User, User> update)
+        {
+            return base.TryUpdate(key, shard, update);
+        }
+
+        public new bool Remove(int key, int shard)
+        {
+            return base.Remove(key, shard);
+        }
+
+        public new bool ContainsKey(int key, int shard)
+        {
+            return base.ContainsKey(key, shard);
+        }
     }
 }

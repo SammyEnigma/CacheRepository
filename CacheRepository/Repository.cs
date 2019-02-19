@@ -18,19 +18,18 @@ namespace CacheRepository
         }
 
         private Dictionary<TKey, long> _global_hash;
-        private Dictionary<int, Shard<TKey, TValue, TShardKey>> _shardings;
+        private Dictionary<int, Shard<TKey, TValue, TShardKey>> _shards;
         private ThreadLocal<TLS_UnitOfWork> _tls = new ThreadLocal<TLS_UnitOfWork>();
         public readonly Func<TShardKey, (int index, string tag)> Sharding;
 
         public CacheRepository()
         {
             _global_hash = new Dictionary<TKey, long>();
-            _shardings = new Dictionary<int, Shard<TKey, TValue, TShardKey>>();
+            _shards = new Dictionary<int, Shard<TKey, TValue, TShardKey>>();
             Sharding = GetShardingRule();
         }
 
         #region ForTestOnly
-        public Dictionary<int, Shard<TKey, TValue, TShardKey>> Shards { get => this._shardings; }
         public TKey TLS_Key { get => this._tls.Value.Key; }
         public TValue TLS_PreResult { get => this._tls.Value.PreResult; }
         public int TLS_ShardIndex { get => this._tls.Value.ShardIndex; }
@@ -50,22 +49,18 @@ namespace CacheRepository
                 var key = GetKey(item);
                 var shard_key = GetShardKey(item);
                 var (index, tag) = Sharding(shard_key);
-                if (!_shardings.ContainsKey(index))
+                if (!_shards.ContainsKey(index))
                 {
-                    _shardings[index] = new Shard<TKey, TValue, TShardKey>(index, tag, this);
+                    _shards[index] = new Shard<TKey, TValue, TShardKey>(index, tag, this);
                 }
-                _shardings[index].Cache.Add(key, item);
+                _shards[index].Cache.Add(key, item);
                 _global_hash.Add(key, item.GetHashCode());
             }
         }
 
-        public Shard<TKey, TValue, TShardKey> this[int index]
-        {
-            get
-            {
-                return _shardings[index];
-            }
-        }
+        public Shard<TKey, TValue, TShardKey> this[int index] { get => _shards[index]; }
+
+        public Dictionary<int, Shard<TKey, TValue, TShardKey>> Shards { get => this._shards; }
 
         public abstract TShardKey GetShardKey(TValue value);
 
@@ -111,24 +106,24 @@ namespace CacheRepository
         {
             var shard_key = GetShardKey(value);
             var (index, tag) = Sharding(shard_key);
-            _shardings[index].Add(key, value, out _);
+            _shards[index].Add(key, value, out _);
             return true;
         }
 
         protected TValue Get(TKey key, TShardKey shard, bool deepClone = true)
         {
             var (index, tag) = Sharding(shard);
-            if (!_shardings.ContainsKey(index))
+            if (!_shards.ContainsKey(index))
                 throw new ArgumentException("计算所得的分片并不存在");
-            return _shardings[index].Get(key, deepClone);
+            return _shards[index].Get(key, deepClone);
         }
 
         protected bool TryGet(TKey key, out TValue value, TShardKey shard, bool deepClone = true)
         {
             var (index, tag) = Sharding(shard);
-            if (!_shardings.ContainsKey(index))
+            if (!_shards.ContainsKey(index))
                 throw new ArgumentException("计算所得的分片并不存在");
-            return _shardings[index].TryGet(key, out value, deepClone);
+            return _shards[index].TryGet(key, out value, deepClone);
         }
 
         protected TValue GetOrCreate(TKey key, TValue value, bool deepClone = true)
@@ -139,47 +134,47 @@ namespace CacheRepository
         protected TValue GetOrCreate(TKey key, Func<TValue> factory, TShardKey shard, bool deepClone = true)
         {
             var (index, tag) = Sharding(shard);
-            if (!_shardings.ContainsKey(index))
+            if (!_shards.ContainsKey(index))
                 throw new ArgumentException("计算所得的分片并不存在");
-            return _shardings[index].GetOrCreate(key, factory, deepClone);
+            return _shards[index].GetOrCreate(key, factory, deepClone);
         }
 
         protected bool TryUpdate(TKey key, TShardKey shard, Action<TValue> update)
         {
             var (index, tag) = Sharding(shard);
-            if (!_shardings.ContainsKey(index))
+            if (!_shards.ContainsKey(index))
                 throw new ArgumentException("计算所得的分片并不存在");
             var affected = 0;
-            _shardings[index].TryUpdate(key, update, out affected);
+            _shards[index].TryUpdate(key, update, out affected);
             return affected == 1;
         }
 
         protected bool TryUpdate(TKey key, TShardKey shard, Func<TValue, TValue> update)
         {
             var (index, tag) = Sharding(shard);
-            if (!_shardings.ContainsKey(index))
+            if (!_shards.ContainsKey(index))
                 throw new ArgumentException("计算所得的分片并不存在");
             var affected = 0;
-            _shardings[index].TryUpdate(key, update, out affected);
+            _shards[index].TryUpdate(key, update, out affected);
             return affected == 1;
         }
 
         protected bool Remove(TKey key, TShardKey shard)
         {
             var (index, tag) = Sharding(shard);
-            if (!_shardings.ContainsKey(index))
+            if (!_shards.ContainsKey(index))
                 throw new ArgumentException("计算所得的分片并不存在");
             var affected = 0;
-            _shardings[index].Remove(key, out affected);
+            _shards[index].Remove(key, out affected);
             return affected == 1;
         }
 
         protected bool ContainsKey(TKey key, TShardKey shard)
         {
             var (index, tag) = Sharding(shard);
-            if (!_shardings.ContainsKey(index))
+            if (!_shards.ContainsKey(index))
                 throw new ArgumentException("计算所得的分片并不存在");
-            return _shardings[index].ContainsKey(key);
+            return _shards[index].ContainsKey(key);
         }
 
         #region unitofwork
@@ -192,9 +187,9 @@ namespace CacheRepository
             var (index, tag) = Sharding(shard);
             _tls.Value.ShardIndex = index;
             _tls.Value.ShardTag = tag;
-            if (!_shardings.ContainsKey(index))
+            if (!_shards.ContainsKey(index))
                 throw new ArgumentException("计算所得的分片并不存在");
-            _shardings[index].Lock.EnterWriteLock();
+            _shards[index].Lock.EnterWriteLock();
             return this;
         }
 
@@ -211,12 +206,12 @@ namespace CacheRepository
                 if (_index != context.ShardIndex)
                     throw new ArgumentException("要创建的值不在当前分区上");
 
-                _shardings[context.ShardIndex].Cache.Add(context.Key, value);
+                _shards[context.ShardIndex].Cache.Add(context.Key, value);
             }
             catch
             {
                 _tls.Value = null;
-                _shardings[context.ShardIndex].Lock.ExitWriteLock();
+                _shards[context.ShardIndex].Lock.ExitWriteLock();
                 throw;
             }
             return this;
@@ -230,12 +225,12 @@ namespace CacheRepository
             var context = _tls.Value;
             try
             {
-                context.PreResult = _shardings[context.ShardIndex].Cache[key];
+                context.PreResult = _shards[context.ShardIndex].Cache[key];
             }
             catch
             {
                 _tls.Value = null;
-                _shardings[context.ShardIndex].Lock.ExitWriteLock();
+                _shards[context.ShardIndex].Lock.ExitWriteLock();
                 throw;
             }
             return this;
@@ -258,15 +253,15 @@ namespace CacheRepository
                 if (_new_index != context.ShardIndex)
                 {
                     // 从当前分区删除
-                    _shardings[context.ShardIndex].Remove(context.Key, out _);
+                    _shards[context.ShardIndex].Remove(context.Key, out _);
                     // 加入到新分区
-                    _shardings[_new_index].Add(context.Key, pre_result, out _);
+                    _shards[_new_index].Add(context.Key, pre_result, out _);
                 }
             }
             catch
             {
                 _tls.Value = null;
-                _shardings[context.ShardIndex].Lock.ExitWriteLock();
+                _shards[context.ShardIndex].Lock.ExitWriteLock();
                 throw;
             }
             return this;
@@ -290,19 +285,19 @@ namespace CacheRepository
                 if (_new_index != context.ShardIndex)
                 {
                     // 从当前分区删除
-                    _shardings[context.ShardIndex].Remove(context.Key, out _);
+                    _shards[context.ShardIndex].Remove(context.Key, out _);
                     // 加入到新分区
-                    _shardings[_new_index].Add(context.Key, new_pre_result, out _);
+                    _shards[_new_index].Add(context.Key, new_pre_result, out _);
                 }
                 else
                 {
-                    _shardings[context.ShardIndex].Cache[context.Key] = new_pre_result;
+                    _shards[context.ShardIndex].Cache[context.Key] = new_pre_result;
                 }
             }
             catch
             {
                 _tls.Value = null;
-                _shardings[context.ShardIndex].Lock.ExitWriteLock();
+                _shards[context.ShardIndex].Lock.ExitWriteLock();
                 throw;
             }
             return this;
@@ -316,7 +311,7 @@ namespace CacheRepository
             var context = _tls.Value;
             try
             {
-                var val = _shardings[context.ShardIndex].Cache[key];
+                var val = _shards[context.ShardIndex].Cache[key];
                 update(val);
 
                 // 判定是否需要挪动分区
@@ -325,15 +320,15 @@ namespace CacheRepository
                 if (_new_index != context.ShardIndex)
                 {
                     // 从当前分区删除
-                    _shardings[context.ShardIndex].Remove(key, out _);
+                    _shards[context.ShardIndex].Remove(key, out _);
                     // 加入到新分区
-                    _shardings[_new_index].Add(key, val, out _);
+                    _shards[_new_index].Add(key, val, out _);
                 }
             }
             catch
             {
                 _tls.Value = null;
-                _shardings[context.ShardIndex].Lock.ExitWriteLock();
+                _shards[context.ShardIndex].Lock.ExitWriteLock();
                 throw;
             }
             return this;
@@ -347,7 +342,7 @@ namespace CacheRepository
             var context = _tls.Value;
             try
             {
-                var new_val = update(_shardings[context.ShardIndex].Cache[key]);
+                var new_val = update(_shards[context.ShardIndex].Cache[key]);
 
                 // 判定是否需要挪动分区
                 var _shard = GetShardKey(new_val);
@@ -355,19 +350,19 @@ namespace CacheRepository
                 if (_new_index != context.ShardIndex)
                 {
                     // 从当前分区删除
-                    _shardings[context.ShardIndex].Remove(key, out _);
+                    _shards[context.ShardIndex].Remove(key, out _);
                     // 加入到新分区
-                    _shardings[_new_index].Add(key, new_val, out _);
+                    _shards[_new_index].Add(key, new_val, out _);
                 }
                 else
                 {
-                    _shardings[context.ShardIndex].Cache[key] = new_val;
+                    _shards[context.ShardIndex].Cache[key] = new_val;
                 }
             }
             catch
             {
                 _tls.Value = null;
-                _shardings[context.ShardIndex].Lock.ExitWriteLock();
+                _shards[context.ShardIndex].Lock.ExitWriteLock();
                 throw;
             }
             return this;
@@ -381,12 +376,12 @@ namespace CacheRepository
             var context = _tls.Value;
             try
             {
-                _shardings[context.ShardIndex].Cache.Remove(key);
+                _shards[context.ShardIndex].Cache.Remove(key);
             }
             catch
             {
                 _tls.Value = null;
-                _shardings[context.ShardIndex].Lock.ExitWriteLock();
+                _shards[context.ShardIndex].Lock.ExitWriteLock();
                 throw;
             }
             return this;
@@ -399,7 +394,7 @@ namespace CacheRepository
 
             var context = _tls.Value;
             _tls.Value = null;
-            _shardings[context.ShardIndex].Lock.ExitWriteLock();
+            _shards[context.ShardIndex].Lock.ExitWriteLock();
         }
         #endregion
     }
