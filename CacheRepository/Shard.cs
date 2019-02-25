@@ -182,6 +182,7 @@ namespace CacheRepository
                     if (old_hash != new_hash)
                     {
                         affected = 1;
+                        _repository.GloablHash[key] = new_hash;
                     }
 
                     // 判定是否需要挪动分区
@@ -221,6 +222,7 @@ namespace CacheRepository
                     if (old_hash != new_hash)
                     {
                         affected = 1;
+                        _repository.GloablHash[key] = new_hash;
                     }
 
                     // 判定是否需要挪动分区
