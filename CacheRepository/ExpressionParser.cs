@@ -10,6 +10,46 @@ namespace CacheRepository
         public string Name;
     }
 
+    class TreeNode
+    {
+        private ExpressionType _exp_op;
+        public TreeNode(ExpressionType op)
+        {
+            _exp_op = op;
+        }
+
+        public int NodeHash;
+        public ExpressionType Op => this._exp_op;
+        public TreeNode Parent;
+
+        private TreeNode _left;
+        public TreeNode Left
+        {
+            set
+            {
+                this._left = value;
+            }
+            get
+            {
+                return this._left;
+            }
+        }
+
+        private TreeNode _right;
+        public TreeNode Right
+        {
+            set
+            {
+                this._right = value;
+            }
+            get
+            {
+                return this._right;
+            }
+        }
+        public static TreeNode Current { get; }
+    }
+
     public class ExprVisitor : ExpressionVisitor
     {
         public string MemberName { get; private set; }
@@ -18,12 +58,17 @@ namespace CacheRepository
 
         private List<Expression> _cache = new List<Expression>();
         private List<int> _hash = new List<int>();
+        private TreeNode root;
 
         protected override Expression VisitBinary(BinaryExpression node)
         {
-            if (_hash.Contains(node.GetHashCode()))
+            if (root == null)
             {
-
+                root = new TreeNode(node.NodeType);
+            }
+            else
+            {
+                
             }
             if (node.Left is MemberExpression && node.Right is ConstantExpression)
             {
@@ -37,11 +82,6 @@ namespace CacheRepository
 
         protected override Expression VisitUnary(UnaryExpression node)
         {
-            if (node.NodeType != ExpressionType.Convert)
-            {
-                _cache.Add(node.Operand);
-                _hash.Add(node.Operand.GetHashCode());
-            }
             return base.VisitUnary(node);
         }
 
