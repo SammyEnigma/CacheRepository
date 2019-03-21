@@ -59,7 +59,6 @@ namespace CacheRepository
         private ReaderWriterLockSlim _lock;
         private Dictionary<TKey, TValue> _cache;
         private IShardable<TKey, TValue, TShardKey> _repository;
-        private IWriteBack _syncer;
         public ReaderWriterLockSlim Lock { get => this._lock; }
         public Dictionary<TKey, TValue> Cache { get => this._cache; }
 
@@ -68,7 +67,6 @@ namespace CacheRepository
             _index = index;
             _tag = tag;
             _repository = repository;
-            _syncer = new RabbitMqSyncer();
             _lock = new ReaderWriterLockSlim();
             _cache = new Dictionary<TKey, TValue>();
         }
@@ -224,12 +222,12 @@ namespace CacheRepository
                 if (_cache.TryGetValue(key, out value))
                 {
                     update(value);
-                    if (_syncer != null)
+                    if (_repository.Syncer != null)
                     {
                         var trace_info = value.GetTracedInfo();
                         if (trace_info.Count > 0)
                         {
-                            _syncer.SyncUpdate(trace_info);
+                            _repository.Syncer.SyncUpdate(trace_info);
                             affected = 1;
                         }
                     }
@@ -266,12 +264,12 @@ namespace CacheRepository
                 if (_cache.TryGetValue(key, out value))
                 {
                     var new_val = update(value);
-                    if (_syncer != null)
+                    if (_repository.Syncer != null)
                     {
                         var trace_info = value.GetTracedInfo();
                         if (trace_info.Count > 0)
                         {
-                            _syncer.SyncUpdate(trace_info);
+                            _repository.Syncer.SyncUpdate(trace_info);
                             affected = 1;
                         }
                     }

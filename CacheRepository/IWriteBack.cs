@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Text;
+using System.Threading.Tasks;
 
 namespace CacheRepository
 {
@@ -10,24 +10,31 @@ namespace CacheRepository
     // BackWritter : IWriteBack
     public interface IWriteBack
     {
-        bool SyncInsert(/*待定*/);
-        bool SyncDelete(/*待定*/);
-        bool SyncUpdate(Dictionary<string, object> tracedInfo);     
+        Task<bool> SyncInsert(/*待定*/);
+        Task<bool> SyncDelete(/*待定*/);
+        Task<bool> SyncUpdate(Dictionary<string, object> tracedInfo);
     }
 
-    public class RabbitMqSyncer : IWriteBack
+    public sealed class SyncerManager
     {
-        public bool SyncDelete()
+        private static readonly IWriteBack _default = new DefaultSyncer();
+        private SyncerManager() { }
+        public static IWriteBack DefaultSyncer { get { return _default; } }
+    }
+
+    public class DefaultSyncer : IWriteBack
+    {
+        public Task<bool> SyncDelete()
         {
             throw new NotImplementedException();
         }
 
-        public bool SyncInsert()
+        public Task<bool> SyncInsert()
         {
             throw new NotImplementedException();
         }
 
-        public bool SyncUpdate(Dictionary<string, object> tracedInfo)
+        public Task<bool> SyncUpdate(Dictionary<string, object> tracedInfo)
         {
             throw new NotImplementedException();
         }

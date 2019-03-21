@@ -1,8 +1,7 @@
-﻿using System.Collections.Generic;
-
-namespace CacheRepository
+﻿namespace CacheRepository
 {
     public interface IRepository<TKey>
     {
+        IWriteBack Syncer { get; }
     }
 }
