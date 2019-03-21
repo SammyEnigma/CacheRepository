@@ -10,6 +10,26 @@ namespace CacheRepository
     // BackWritter : IWriteBack
     public interface IWriteBack
     {
-        bool WriteBack();
+        bool SyncInsert(/*待定*/);
+        bool SyncDelete(/*待定*/);
+        bool SyncUpdate(Dictionary<string, object> tracedInfo);     
+    }
+
+    public class RabbitMqSyncer : IWriteBack
+    {
+        public bool SyncDelete()
+        {
+            throw new NotImplementedException();
+        }
+
+        public bool SyncInsert()
+        {
+            throw new NotImplementedException();
+        }
+
+        public bool SyncUpdate(Dictionary<string, object> tracedInfo)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

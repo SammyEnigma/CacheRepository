@@ -5,14 +5,61 @@ using System.Threading;
 
 namespace CacheRepository
 {
+    public interface IEntity
+    {
+        Dictionary<string, object> GetTracedInfo();
+    }
+
+    class user : IEntity
+    {
+        private int _id;
+        private int _age;
+        private string _name;
+
+        private volatile int _ver_id;
+        private volatile int _ver_age;
+        private volatile int _ver_name;
+
+        public int Id
+        {
+            set { _id = value; _ver_id++; }
+            get { return _id; }
+        }
+
+        public int Age
+        {
+            set { _age = value; _ver_age++; }
+            get { return _age; }
+        }
+
+        public string Name
+        {
+            set { _name = value; _ver_name++; }
+            get { return _name; }
+        }
+
+        public Dictionary<string, object> GetTracedInfo()
+        {
+            var info = new Dictionary<string, object>();
+            if (_ver_id != 0)
+            {
+                info.Add("Id", _id);
+                _ver_id = 0;
+            }
+
+            return info;
+        }
+    }
+    
     public class Shard<TKey, TValue, TShardKey>
-        where TValue : class
+        where TValue : IEntity
     {
         private int _index;
         private string _tag;
         private ReaderWriterLockSlim _lock;
         private Dictionary<TKey, TValue> _cache;
         private IShardable<TKey, TValue, TShardKey> _repository;
+        private IWriteBack _syncer;
         public ReaderWriterLockSlim Lock { get => this._lock; }
         public Dictionary<TKey, TValue> Cache { get => this._cache; }
 
@@ -21,6 +68,7 @@ namespace CacheRepository
             _index = index;
             _tag = tag;
             _repository = repository;
+            _syncer = new RabbitMqSyncer();
             _lock = new ReaderWriterLockSlim();
             _cache = new Dictionary<TKey, TValue>();
         }
@@ -177,6 +225,12 @@ namespace CacheRepository
                 if (_cache.TryGetValue(key, out value))
                 {
                     update(value);
+                    if (_syncer != null)
+                    {
+                        var trace_info = value.GetTracedInfo();
+                        _syncer.SyncUpdate(trace_info);
+                    }
+                    
                     var old_hash = _repository.GloablHash[key];
                     var new_hash = value.GetHashCode();
                     if (old_hash != new_hash)
