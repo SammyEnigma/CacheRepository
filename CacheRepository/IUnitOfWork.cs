@@ -3,7 +3,7 @@
 namespace CacheRepository.UnitOfWork
 {
     public interface IUnitOfWork<TKey, TValue, TShardKey>
-        where TValue : class
+        where TValue : class, IEntity
     {
         IUnitOfWork<TKey, TValue, TShardKey> Begin(TShardKey shard);
         IUnitOfWork<TKey, TValue, TShardKey> AddItem(TKey key, TValue value);

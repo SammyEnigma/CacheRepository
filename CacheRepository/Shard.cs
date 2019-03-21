@@ -52,7 +52,7 @@ namespace CacheRepository
     }
     
     public class Shard<TKey, TValue, TShardKey>
-        where TValue : IEntity
+        where TValue : class, IEntity
     {
         private int _index;
         private string _tag;
@@ -174,7 +174,6 @@ namespace CacheRepository
                             throw new ArgumentException("创建的缓存对象分片与所在分片不一致");
                         }
                         _cache[key] = ret;
-                        _repository.GloablHash.Add(key, ret.GetHashCode());
                         if (deepClone)
                         {
                             ret = CloneJson(ret);
@@ -228,15 +227,11 @@ namespace CacheRepository
                     if (_syncer != null)
                     {
                         var trace_info = value.GetTracedInfo();
-                        _syncer.SyncUpdate(trace_info);
-                    }
-                    
-                    var old_hash = _repository.GloablHash[key];
-                    var new_hash = value.GetHashCode();
-                    if (old_hash != new_hash)
-                    {
-                        affected = 1;
-                        _repository.GloablHash[key] = new_hash;
+                        if (trace_info.Count > 0)
+                        {
+                            _syncer.SyncUpdate(trace_info);
+                            affected = 1;
+                        }
                     }
 
                     // 判定是否需要挪动分区
@@ -271,12 +266,14 @@ namespace CacheRepository
                 if (_cache.TryGetValue(key, out value))
                 {
                     var new_val = update(value);
-                    var old_hash = _repository.GloablHash[key];
-                    var new_hash = new_val.GetHashCode();
-                    if (old_hash != new_hash)
+                    if (_syncer != null)
                     {
-                        affected = 1;
-                        _repository.GloablHash[key] = new_hash;
+                        var trace_info = value.GetTracedInfo();
+                        if (trace_info.Count > 0)
+                        {
+                            _syncer.SyncUpdate(trace_info);
+                            affected = 1;
+                        }
                     }
 
                     // 判定是否需要挪动分区

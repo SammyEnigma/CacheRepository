@@ -8,7 +8,7 @@ namespace CacheRepository
     public abstract class CacheRepository<TKey, TValue, TShardKey> :
         IShardable<TKey, TValue, TShardKey>,
         IUnitOfWork<TKey, TValue, TShardKey>
-        where TValue : class
+        where TValue : class, IEntity
     {
         private class TLS_UnitOfWork
         {
