@@ -19,7 +19,7 @@ namespace CacheRepository
         }
 
         private Dictionary<TKey, long> _global_hash;
-        private IWriteBack _syncer;
+        private IWriteBack<TValue> _syncer;
         private Dictionary<int, Shard<TKey, TValue, TShardKey>> _shards;
         private ThreadLocal<TLS_UnitOfWork> _tls = new ThreadLocal<TLS_UnitOfWork>();
         public readonly Func<TShardKey, (int index, string tag)> Sharding;
@@ -27,7 +27,7 @@ namespace CacheRepository
         public CacheRepository()
         {
             _global_hash = new Dictionary<TKey, long>();
-            _syncer = SyncerManager.DefaultSyncer;
+            _syncer = SyncerManager.DefaultSyncer<TValue>();
             _shards = new Dictionary<int, Shard<TKey, TValue, TShardKey>>();
             Sharding = GetShardingRule();
         }
@@ -69,7 +69,7 @@ namespace CacheRepository
 
         public abstract Func<TShardKey, (int index, string tag)> GetShardingRule();
 
-        public IWriteBack Syncer
+        public IWriteBack<TValue> Syncer
         {
             get
             {

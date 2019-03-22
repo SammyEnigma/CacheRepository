@@ -1,7 +1,8 @@
 ﻿namespace CacheRepository
 {
-    public interface IRepository<TKey>
+    public interface IRepository<Tkey, TValue>
+        where TValue : class, IEntity
     {
-        IWriteBack Syncer { get; }
+        IWriteBack<TValue> Syncer { get; }
     }
 }

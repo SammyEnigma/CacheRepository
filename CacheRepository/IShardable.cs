@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace CacheRepository
 {
-    public interface IShardable<TKey, TValue, TShardKey> : IRepository<TKey>
+    public interface IShardable<TKey, TValue, TShardKey> : IRepository<TKey, TValue>
         where TValue : class, IEntity
     {
         TShardKey GetShardKey(TValue value);
